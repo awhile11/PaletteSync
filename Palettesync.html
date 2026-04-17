@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PaletteSync — Color Theory Palette Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --white:#ffffff; --black:#111110;
+  --g50:#F7F6F3; --g100:#EDEDEA; --g200:#D9D8D4;
+  --g400:#9A9994; --g600:#5F5E5A; --g800:#2C2C2A;
+  --rsm:6px; --rmd:10px; --rlg:16px; --rxl:24px;
+  --navh:64px;
+  --fd:'DM Serif Display',Georgia,serif;
+  --fb:'DM Sans',system-ui,sans-serif;
+  --tr:0.2s ease;
+}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fb);background:var(--g50);color:var(--black);min-height:100vh;line-height:1.6;}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(247,246,243,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--g200);height:var(--navh);display:flex;align-items:center;}
+.nav-inner{max-width:1100px;margin:0 auto;width:100%;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;}
+.nav-logo{font-family:var(--fd);font-size:1.4rem;color:var(--black);text-decoration:none;letter-spacing:-.02em;}
+.nav-links{display:flex;gap:2.5rem;list-style:none;}
+.nav-links a{font-size:.82rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--g600);text-decoration:none;transition:color var(--tr);cursor:pointer;}
+.nav-links a:hover,.nav-links a.active{color:var(--black);}
+
+/* PAGES */
+.page-section{display:none;}.page-section.active{display:block;}
+
+/* HERO */
+.hero{max-width:1100px;margin:0 auto;padding:5rem 2rem 3rem;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start;}
+.hero-eyebrow{font-size:.75rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--g400);margin-bottom:1rem;}
+.hero-title{font-family:var(--fd);font-size:clamp(2.2rem,5vw,3.6rem);line-height:1.1;letter-spacing:-.03em;color:var(--black);margin-bottom:1.2rem;}
+.hero-title em{font-style:italic;color:var(--g600);}
+.hero-sub{font-size:1rem;color:var(--g600);max-width:380px;line-height:1.7;margin-bottom:2rem;}
+
+/* COLOR INPUT CARD */
+.color-input-card{background:var(--white);border:1px solid var(--g200);border-radius:var(--rxl);padding:1.75rem;box-shadow:0 1px 3px rgba(0,0,0,.04),0 8px 32px rgba(0,0,0,.07);}
+.sec-label{font-size:.69rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--g400);margin-bottom:.65rem;display:block;}
+
+/* NAME SEARCH */
+.name-search-wrap{position:relative;margin-bottom:.75rem;}
+.name-search-input{width:100%;padding:.65rem 1rem .65rem 2.4rem;border:1.5px solid var(--g200);border-radius:var(--rmd);background:var(--g50);font-family:var(--fb);font-size:.9rem;color:var(--black);outline:none;transition:border-color var(--tr),background var(--tr);}
+.name-search-input:focus{border-color:var(--black);background:var(--white);}
+.name-search-input::placeholder{color:var(--g400);}
+.search-icon-wrap{position:absolute;left:.78rem;top:50%;transform:translateY(-50%);color:var(--g400);pointer-events:none;display:flex;}
+.name-suggestions{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);z-index:60;max-height:210px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.1);display:none;}
+.name-suggestions.open{display:block;}
+.sug-item{display:flex;align-items:center;gap:.75rem;padding:.55rem .85rem;cursor:pointer;transition:background var(--tr);}
+.sug-item:hover{background:var(--g50);}
+.sug-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.08);}
+.sug-name{font-size:.85rem;color:var(--black);font-weight:500;}
+.sug-hex{font-size:.75rem;color:var(--g400);font-family:monospace;margin-left:auto;}
+
+/* OR divider */
+.div-or{display:flex;align-items:center;gap:.75rem;margin:.85rem 0;font-size:.7rem;letter-spacing:.08em;color:var(--g400);text-transform:uppercase;}
+.div-or::before,.div-or::after{content:'';flex:1;height:1px;background:var(--g200);}
+
+/* HEX ROW */
+.hex-picker-row{display:flex;gap:.6rem;align-items:stretch;}
+.hex-input-wrap{flex:1;display:flex;align-items:center;gap:.6rem;background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rmd);padding:.5rem .8rem;transition:border-color var(--tr);}
+.hex-input-wrap:focus-within{border-color:var(--black);background:var(--white);}
+.live-swatch{width:26px;height:26px;border-radius:5px;background:#292929;flex-shrink:0;border:1px solid rgba(0,0,0,.1);}
+.hex-text-input{flex:1;border:none;background:none;font-family:var(--fb);font-size:.95rem;font-weight:500;color:var(--black);outline:none;letter-spacing:.04em;min-width:0;}
+
+/* PICK COLOR BUTTON — rainbow gradient, unmissable */
+.pick-color-btn{display:flex;align-items:center;gap:.45rem;padding:0 1.1rem;border-radius:var(--rmd);background:linear-gradient(135deg,white);border:hsl(from color h s l);cursor:pointer;font-family:var(--fb);font-size:.8rem;font-weight:700;color:black;text-shadow:0 1px 2px rgba(0,0,0,.35);letter-spacing:.02em;position:relative;overflow:hidden;flex-shrink:0;min-height:46px;transition:transform var(--tr),box-shadow var(--tr);}
+.pick-color-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.18);}
+.pick-color-btn:active{transform:translateY(0);}
+.pick-color-btn input[type="color"]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;}
+
+/* PREVIEW STRIP */
+.palette-preview{display:flex;margin-top:1rem;border-radius:var(--rmd);overflow:hidden;height:44px;}
+.pal-swatch{flex:1;}
+
+/* GENERATE BUTTON */
+.gen-btn{width:100%;margin-top:1rem;padding:.9rem;border:none;border-radius:var(--rmd);background:var(--black);color:var(--white);font-family:var(--fb);font-size:.9rem;font-weight:500;letter-spacing:.02em;cursor:pointer;transition:background var(--tr),transform var(--tr);}
+.gen-btn:hover{background:var(--g800);transform:translateY(-1px);}
+.gen-btn:active{transform:translateY(0);}
+
+/* ERROR */
+.input-error{font-size:.78rem;color:#c0392b;margin-top:.4rem;display:none;}
+.has-error{border-color:#e74c3c !important;}
+
+/* BADGES */
+.hero-badges{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:1.25rem;}
+.badge{font-size:.75rem;font-weight:500;padding:.32rem .8rem;border-radius:99px;border:1px solid var(--g200);color:var(--g600);background:var(--white);cursor:pointer;transition:all var(--tr);display:flex;align-items:center;gap:.4rem;}
+.badge:hover{border-color:var(--black);color:var(--black);}
+.badge-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* THEME CARDS (right column) */
+.theme-cards-col{display:flex;flex-direction:column;gap:1rem;}
+.theme-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--rlg);padding:1.25rem 1.5rem;transition:box-shadow var(--tr);}
+.theme-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+.theme-card-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--g400);margin-bottom:.6rem;}
+.theme-swatches{display:flex;gap:.4rem;height:40px;}
+.t-swatch{flex:1;border-radius:6px;border:1px solid rgba(0,0,0,.06);transition:transform var(--tr);cursor:pointer;}
+.t-swatch:hover{transform:scaleY(1.1);}
+.theme-card-desc{font-size:.78rem;color:var(--g600);margin-top:.55rem;line-height:1.5;}
+
+/* RESULTS */
+.results{max-width:1100px;margin:0 auto;padding:0 2rem 5rem;}
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-top:3rem;border-top:1px solid var(--g200);}
+.results-title{font-family:var(--fd);font-size:1.6rem;letter-spacing:-.02em;}
+.copy-all-btn{font-size:.8rem;font-weight:500;padding:.5rem 1.2rem;border:1.5px solid var(--g200);border-radius:99px;background:var(--white);cursor:pointer;color:var(--g600);transition:all var(--tr);font-family:var(--fb);}
+.copy-all-btn:hover{border-color:var(--black);color:var(--black);}
+.palette-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.palette-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--rlg);overflow:hidden;transition:box-shadow var(--tr),transform var(--tr);}
+.palette-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);transform:translateY(-2px);}
+.pal-card-swatches{display:flex;height:100px;}
+.swatch-block{flex:1;position:relative;cursor:pointer;transition:flex var(--tr);}
+.swatch-block:hover{flex:1.5;}
+.swatch-hint{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;font-weight:500;letter-spacing:.04em;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity var(--tr);white-space:nowrap;}
+.swatch-block:hover .swatch-hint{opacity:1;}
+.pal-card-body{padding:1rem 1.1rem;}
+.pal-type{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--g400);margin-bottom:.3rem;}
+.pal-name{font-size:1rem;font-weight:500;color:var(--black);margin-bottom:.6rem;}
+.pal-hexes{display:flex;flex-wrap:wrap;gap:.4rem;}
+.hex-pill{font-size:.72rem;font-family:'SF Mono','Consolas',monospace;padding:.2rem .55rem;border-radius:4px;background:var(--g50);border:1px solid var(--g100);color:var(--g600);cursor:pointer;transition:all var(--tr);}
+.hex-pill:hover{background:var(--black);color:var(--white);border-color:var(--black);}
+.full-row-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--rlg);overflow:hidden;grid-column:1/-1;transition:box-shadow var(--tr),transform var(--tr);}
+.full-row-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);transform:translateY(-2px);}
+.full-row-swatches{display:flex;height:80px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--black);color:var(--white);font-size:.82rem;font-weight:500;padding:.6rem 1.4rem;border-radius:99px;opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;z-index:9999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ABOUT */
+.about-hero{max-width:680px;margin:0 auto;padding:5rem 2rem 4rem;}
+.about-eyebrow{font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--g400);margin-bottom:1.2rem;}
+.about-title{font-family:var(--fd);font-size:2.8rem;line-height:1.1;letter-spacing:-.03em;margin-bottom:2rem;color:var(--black);}
+.about-body{font-size:1.05rem;line-height:1.8;color:var(--g600);}
+.about-body p{margin-bottom:1.4rem;}
+.about-body strong{color:var(--black);font-weight:500;}
+.about-divider{max-width:680px;margin:0 auto 3rem;padding:0 2rem;border-top:1px solid var(--g200);}
+.about-principles{max-width:680px;margin:0 auto;padding:0 2rem 5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+.principle-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--rlg);padding:1.5rem;}
+.principle-num{font-family:var(--fd);font-size:2.5rem;color:var(--g200);line-height:1;margin-bottom:.8rem;}
+.principle-title{font-size:.9rem;font-weight:600;letter-spacing:.04em;color:var(--black);margin-bottom:.4rem;}
+.principle-body{font-size:.85rem;color:var(--g600);line-height:1.6;}
+
+/* CONTACT */
+.contact-wrap{max-width:560px;margin:0 auto;padding:5rem 2rem;}
+.contact-title{font-family:var(--fd);font-size:2.4rem;letter-spacing:-.03em;margin-bottom:.6rem;color:var(--black);}
+.contact-sub{font-size:.95rem;color:var(--g600);margin-bottom:3rem;line-height:1.7;}
+.contact-cards{display:flex;flex-direction:column;gap:1rem;}
+.contact-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--rlg);padding:1.4rem 1.6rem;display:flex;align-items:center;gap:1.2rem;transition:box-shadow var(--tr),transform var(--tr));}
+.contact-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);transform:translateY(-1px);}
+.contact-card-icon{width:44px;height:44px;border-radius:12px;background:var(--g50);border:1px solid var(--g100);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--g600);}
+.contact-card-label{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--g400);margin-bottom:.2rem;}
+.contact-card-value{font-size:.95rem;font-weight:500;color:var(--black);}
+.contact-card-value a{color:var(--black);text-decoration:none;border-bottom:1px solid var(--g200);transition:border-color var(--tr);}
+.contact-card-value a:hover{border-color:var(--black);}
+
+@media(max-width:760px){
+  .hero{grid-template-columns:1fr;gap:2rem;padding:3rem 1.25rem 2rem;}
+  .results{padding:0 1.25rem 3rem;}
+  .palette-grid{grid-template-columns:1fr;}
+  .about-principles{grid-template-columns:1fr;}
+  .nav-links{gap:1.5rem;}
+  .nav-links a{font-size:.75rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#" onclick="showPage('home');return false;">PaletteSync</a>
+    <ul class="nav-links">
+      <li><a class="active" id="nav-home"    onclick="showPage('home');return false;">Home</a></li>
+      <li><a             id="nav-about"   onclick="showPage('about');return false;">About</a></li>
+      <li><a             id="nav-contact" onclick="showPage('contact');return false;">Contact Us</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HOME -->
+<section id="page-home" class="page-section active">
+  <div class="hero">
+
+    <!-- LEFT: input -->
+    <div>
+      <p class="hero-eyebrow">Color Theory Engine</p>
+      <h1 class="hero-title">Build palettes that <em>actually</em> work.</h1>
+      <p class="hero-sub">Rule-based harmony using complementary, analogous, triadic, and monochromatic relationships — pure color science, zero guessing.</p>
+
+      <div class="color-input-card">
+
+        <!-- Search by name -->
+        <span class="sec-label">Search by color name</span>
+        <div class="name-search-wrap">
+          <span class="search-icon-wrap">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10" y1="10" x2="13.5" y2="13.5"/>
+            </svg>
+          </span>
+          <input type="text" class="name-search-input" id="nameSearch"
+            placeholder='Try "coral", "navy", "sage", "gold", "teal"…'
+            oninput="handleNameSearch()" onblur="hideSuggestionsDelay()" autocomplete="off" />
+          <div class="name-suggestions" id="nameSuggestions"></div>
+        </div>
+
+        <div class="div-or">or enter hex / use color picker</div>
+
+        <!-- Hex + pick color button -->
+        <div class="hex-picker-row">
+          <div class="hex-input-wrap" id="hexInputWrap">
+            <div class="live-swatch" id="liveSwatch"></div>
+            <input type="text" class="hex-text-input" id="hexInput"
+              value="#292929" maxlength="7" placeholder="#000000"
+              oninput="syncFromText()" onkeydown="if(event.key==='Enter')generatePalette()" />
+          </div>
+
+          <!-- Rainbow "Pick Color" button — impossible to miss -->
+          <button class="pick-color-btn" title="Open color picker to visually choose any color">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;flex-shrink:0">
+              <path d="M2 12l2-2 6-6-2-2-6 6-2 2 2 2z"/><path d="M8 4l2 2"/><circle cx="12" cy="2" r="1.5"/>
+            </svg>
+            Pick Color
+            <input type="color" id="colorPicker" value="#292929" oninput="syncFromPicker()" />
+          </button>
+        </div>
+        <div class="input-error" id="inputError">Please enter a valid hex color (e.g. #4D96FF)</div>
+
+        <!-- Live preview strip -->
+        <div class="palette-preview" id="palettePreview">
+          <div class="pal-swatch" style="background:#292929"></div>
+          <div class="pal-swatch" style="background:#c3c3c3"></div>
+          <div class="pal-swatch" style="background:#8f8f8f"></div>
+          <div class="pal-swatch" style="background:#636363"></div>
+          <div class="pal-swatch" style="background:#484848"></div>
+        </div>
+
+        <button class="gen-btn" onclick="generatePalette()">Generate Palette →</button>
+      </div>
+
+      <!-- Example badges -->
+      <div class="hero-badges">
+        <span class="badge" onclick="setColor('#4D96FF')"><span class="badge-dot" style="background:#4D96FF"></span>Ocean Blue</span>
+        <span class="badge" onclick="setColor('#FFD93D')"><span class="badge-dot" style="background:#FFD93D"></span>Sunburst</span>
+        <span class="badge" onclick="setColor('#00C896')"><span class="badge-dot" style="background:#00C896"></span>Emerald</span>
+        <span class="badge" onclick="setColor('#ff6b6b')"><span class="badge-dot" style="background:#ff6b6b"></span>Coral Red</span>
+        <span class="badge" onclick="setColor('#C0A062')"><span class="badge-dot" style="background:#C0A062"></span>Warm Gold</span>
+        <span class="badge" onclick="setColor('#9B5DE5')"><span class="badge-dot" style="background:#9B5DE5"></span>Violet</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: theme preview cards — update with chosen color -->
+    <div class="theme-cards-col">
+      <div class="theme-card">
+        <div class="theme-card-label">Clean &amp; Modern</div>
+        <div class="theme-swatches" id="themeClean">
+          <div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div>
+        </div>
+        <div class="theme-card-desc">Minimal UI — your color with soft neutrals and near-white tones for clean interfaces.</div>
+      </div>
+      <div class="theme-card">
+        <div class="theme-card-label">Bold Accent Colors</div>
+        <div class="theme-swatches" id="themeBold">
+          <div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div>
+        </div>
+        <div class="theme-card-desc">High-energy — your color with its triadic and complementary harmonies for vibrant UIs.</div>
+      </div>
+      <div class="theme-card">
+        <div class="theme-card-label">Elegant &amp; Premium</div>
+        <div class="theme-swatches" id="themeElegant">
+          <div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div><div class="t-swatch"></div>
+        </div>
+        <div class="theme-card-desc">Refined — deep near-black base, your color as the hero, with warm tonal accents.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="resultsSection" style="display:none;">
+    <div class="results-header">
+      <h2 class="results-title">Generated Palette</h2>
+      <button class="copy-all-btn" onclick="copyAllJSON()">Copy as JSON</button>
+    </div>
+    <div class="palette-grid" id="paletteGrid"></div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="page-about" class="page-section">
+  <div class="about-hero">
+    <p class="about-eyebrow">About This Project</p>
+    <h1 class="about-title">Designed on the<br/>foundations of color theory.</h1>
+    <div class="about-body">
+      <p>This website was created with a simple goal: to make finding the right color combinations fast, intuitive, and accessible to everyone.</p>
+      <p>Instead of relying on artificial intelligence, this tool is built on the foundations of <strong>real color theory</strong>. Every palette is generated using proven principles such as complementary, analogous, and triadic relationships — combined with carefully balanced adjustments to saturation and lightness to ensure visually pleasing results.</p>
+      <p>The idea is simple: you choose a color, and the system intelligently builds a palette that works. Whether you're designing a website, creating a brand, or just experimenting with colors, this tool helps you move from guesswork to confident design decisions.</p>
+      <p>This project reflects a deeper understanding of how colors interact, not just how they look. By focusing on <strong>structure, balance, and usability</strong>, it aims to provide palettes that are not only correct — but actually feel right.</p>
+      <p>Built for designers, developers, and creators who want clean, reliable color combinations — without overcomplicating the process.</p>
+    </div>
+  </div>
+  <div class="about-divider"></div>
+  <div class="about-principles">
+    <div class="principle-card"><div class="principle-num">01</div><div class="principle-title">Complementary</div><div class="principle-body">Colors opposite on the hue wheel (180°) create maximum contrast and visual energy.</div></div>
+    <div class="principle-card"><div class="principle-num">02</div><div class="principle-title">Analogous</div><div class="principle-body">Adjacent hues (±30°) produce harmonious, nature-like palettes that feel cohesive.</div></div>
+    <div class="principle-card"><div class="principle-num">03</div><div class="principle-title">Triadic</div><div class="principle-body">Three hues equally spaced (+120°, +240°) offer rich variety while keeping balance.</div></div>
+    <div class="principle-card"><div class="principle-num">04</div><div class="principle-title">Monochromatic</div><div class="principle-body">Multiple lightness levels of a single hue create depth and sophisticated tonal layers.</div></div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="page-contact" class="page-section">
+  <div class="contact-wrap">
+    <h1 class="contact-title">Get in touch.</h1>
+    <p class="contact-sub">Have a question, feedback, or just want to say hello? Reach out directly — we'd love to hear from you.</p>
+
+    <div class="contact-cards">
+
+      <div class="contact-card">
+        <div class="contact-card-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="16" height="12" rx="2"/><path d="M2 7l8 5 8-5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="contact-card-label">Email</div>
+          <div class="contact-card-value"><a href="mailto:lthlohi11@gmail.com">lthlohi11@gmail.com</a></div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-card-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/>
+          </svg>
+        </div>
+        <div>
+          <div class="contact-card-label">Response time</div>
+          <div class="contact-card-value">Usually within 24 hours</div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-card-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 2C6.69 2 4 4.69 4 8c0 4.5 6 10 6 10s6-5.5 6-10c0-3.31-2.69-6-6-6z"/><circle cx="10" cy="8" r="2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="contact-card-label">Based in</div>
+          <div class="contact-card-value">South Africa</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   COLOR THEORY ENGINE
+═══════════════════════════════════════════════════════ */
+function clamp(v,mn,mx){return Math.min(Math.max(v,mn),mx);}
+function wrapHue(h){return((h%360)+360)%360;}
+
+function hexToHsl(hex){
+  let raw=hex.replace(/^#/,'');
+  if(raw.length===3)raw=raw.split('').map(c=>c+c).join('');
+  const r=parseInt(raw.slice(0,2),16)/255,g=parseInt(raw.slice(2,4),16)/255,b=parseInt(raw.slice(4,6),16)/255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
+  let l=(max+min)/2,s=0,h=0;
+  if(d!==0){
+    s=d/(1-Math.abs(2*l-1));
+    switch(max){case r:h=((g-b)/d)%6;break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
+    h=Math.round(h*60);if(h<0)h+=360;
+  }
+  return{h,s:s*100,l:l*100};
+}
+
+function hslToHex(h,s,l){
+  s/=100;l/=100;
+  const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+  let r=0,g=0,b=0;
+  if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}
+  else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+  const hex=n=>Math.round((n+m)*255).toString(16).padStart(2,'0');
+  return`#${hex(r)}${hex(g)}${hex(b)}`.toUpperCase();
+}
+
+function adjustHue(hsl,deg){return{h:wrapHue(hsl.h+deg),s:hsl.s,l:hsl.l};}
+function setLightness(hsl,l){return{h:hsl.h,s:hsl.s,l:clamp(l,0,100)};}
+function isValidHex(hex){return/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);}
+
+function monoLightnesses(base){
+  if(base<20)return[clamp(base+15,0,95),clamp(base+35,0,95),clamp(base+55,0,95)];
+  if(base>80)return[clamp(base-15,5,100),clamp(base-35,5,100),clamp(base-55,5,100)];
+  return[clamp(base-25,5,95),clamp(base+25,5,95),clamp(base+48,5,95)];
+}
+
+function buildAccent(hsl){
+  const sat=hsl.s<15?65:clamp(hsl.s+20,0,100);
+  const lit=hsl.l>65?clamp(hsl.l-20,30,80):hsl.l<30?clamp(hsl.l+25,30,70):hsl.l;
+  return{h:wrapHue(hsl.h+15),s:sat,l:lit};
+}
+
+function generateColorPalette(hex){
+  if(!isValidHex(hex))throw new Error('Invalid hex');
+  let n=hex.toUpperCase();
+  if(n.length===4)n='#'+n[1].repeat(2)+n[2].repeat(2)+n[3].repeat(2);
+  const base=hexToHsl(n);
+  const toHex=({h,s,l})=>hslToHex(h,s,l);
+  const comp=adjustHue(base,180);
+  const analog=[adjustHue(base,-30),adjustHue(base,30)];
+  const triad=[adjustHue(base,120),adjustHue(base,240)];
+  const mono=monoLightnesses(base.l).map(l=>setLightness(base,l));
+  const accent=buildAccent(base);
+  return{
+    primary:n,complementary:toHex(comp),
+    analogous:analog.map(toHex),triadic:triad.map(toHex),
+    monochromatic:mono.map(toHex),accent:toHex(accent),
+    _hsl:{base,comp,analog,triad,mono,accent}
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   THEME PALETTES — computed from chosen color
+═══════════════════════════════════════════════════════ */
+function buildThemePalettes(p){
+  const{h,s,l}=p._hsl.base;
+  // Clean & Modern: primary + progressively lighter desaturated steps
+  const clean=[
+    p.primary,
+    hslToHex(h,clamp(s*.45,0,100),clamp(l+28,58,92)),
+    hslToHex(h,clamp(s*.18,0,100),87),
+    hslToHex(h,clamp(s*.08,0,100),93),
+    hslToHex(h,clamp(s*.03,0,100),97)
+  ];
+  // Bold Accent: primary + complementary + both triadics + accent
+  const bold=[
+    p.primary,
+    p.complementary,
+    p.triadic[0],
+    p.triadic[1],
+    p.accent
+  ];
+  // Elegant & Premium: near-black → dark color → primary → analogous → warm light
+  const elegant=[
+    hslToHex(h,clamp(s*.28,0,35),clamp(l*.18,4,16)),
+    hslToHex(h,clamp(s*.65,0,100),clamp(l*.52,14,44)),
+    p.primary,
+    p.analogous[1],
+    hslToHex(wrapHue(h+14),clamp(s*.5,8,55),clamp(l*1.28,62,88))
+  ];
+  return{clean,bold,elegant};
+}
+
+function applyThemeCards(p){
+  const{clean,bold,elegant}=buildThemePalettes(p);
+  const apply=(id,colors)=>{
+    document.querySelectorAll(`#${id} .t-swatch`).forEach((s,i)=>{if(colors[i])s.style.background=colors[i];});
+  };
+  apply('themeClean',clean);
+  apply('themeBold',bold);
+  apply('themeElegant',elegant);
+}
+
+/* ═══════════════════════════════════════════════════════
+   COLOR NAME DICTIONARY — 160+ colors
+═══════════════════════════════════════════════════════ */
+const COLOR_NAMES=[
+  {n:'Red',h:'#FF0000'},{n:'Crimson',h:'#DC143C'},{n:'Firebrick',h:'#B22222'},
+  {n:'Dark Red',h:'#8B0000'},{n:'Tomato',h:'#FF6347'},{n:'Coral',h:'#FF7F50'},
+  {n:'Light Coral',h:'#F08080'},{n:'Indian Red',h:'#CD5C5C'},{n:'Salmon',h:'#FA8072'},
+  {n:'Light Salmon',h:'#FFA07A'},{n:'Orange Red',h:'#FF4500'},{n:'Rose',h:'#FF007F'},
+  {n:'Pink',h:'#FFC0CB'},{n:'Hot Pink',h:'#FF69B4'},{n:'Deep Pink',h:'#FF1493'},
+  {n:'Pale Pink',h:'#FADADD'},{n:'Blush',h:'#DE5D83'},{n:'Flamingo',h:'#FC8EAC'},
+  {n:'Bubblegum',h:'#FFC1CC'},{n:'Magenta',h:'#FF00FF'},{n:'Fuchsia',h:'#FF77FF'},
+  {n:'Orange',h:'#FFA500'},{n:'Dark Orange',h:'#FF8C00'},{n:'Peach',h:'#FFDAB9'},
+  {n:'Apricot',h:'#FBCEB1'},{n:'Burnt Orange',h:'#CC5500'},{n:'Tangerine',h:'#F28500'},
+  {n:'Pumpkin',h:'#FF7518'},{n:'Amber',h:'#FFBF00'},{n:'Saffron',h:'#F4C430'},
+  {n:'Yellow',h:'#FFFF00'},{n:'Gold',h:'#FFD700'},{n:'Sunburst',h:'#FFD93D'},
+  {n:'Lemon',h:'#FFF44F'},{n:'Cream',h:'#FFFDD0'},{n:'Khaki',h:'#F0E68C'},
+  {n:'Dark Khaki',h:'#BDB76B'},{n:'Mustard',h:'#FFDB58'},{n:'Butter',h:'#FFFAA0'},
+  {n:'Green',h:'#008000'},{n:'Lime',h:'#00FF00'},{n:'Lime Green',h:'#32CD32'},
+  {n:'Forest Green',h:'#228B22'},{n:'Dark Green',h:'#006400'},{n:'Olive',h:'#808000'},
+  {n:'Olive Drab',h:'#6B8E23'},{n:'Yellow Green',h:'#9ACD32'},{n:'Chartreuse',h:'#7FFF00'},
+  {n:'Spring Green',h:'#00FF7F'},{n:'Medium Green',h:'#3CB371'},{n:'Sea Green',h:'#2E8B57'},
+  {n:'Emerald',h:'#00C896'},{n:'Sage',h:'#87AE73'},{n:'Mint',h:'#98FF98'},
+  {n:'Moss',h:'#8A9A5B'},{n:'Fern',h:'#4F7942'},{n:'Hunter Green',h:'#355E3B'},
+  {n:'Jungle Green',h:'#29AB87'},{n:'Viridian',h:'#40826D'},{n:'Pistachio',h:'#93C572'},
+  {n:'Blue',h:'#0000FF'},{n:'Navy',h:'#001F5B'},{n:'Dark Blue',h:'#00008B'},
+  {n:'Medium Blue',h:'#0000CD'},{n:'Royal Blue',h:'#4169E1'},{n:'Cobalt',h:'#0047AB'},
+  {n:'Cornflower Blue',h:'#6495ED'},{n:'Sky Blue',h:'#87CEEB'},{n:'Light Blue',h:'#ADD8E6'},
+  {n:'Powder Blue',h:'#B0E0E6'},{n:'Steel Blue',h:'#4682B4'},{n:'Teal Blue',h:'#367588'},
+  {n:'Ocean Blue',h:'#4D96FF'},{n:'Baby Blue',h:'#89CFF0'},{n:'Midnight Blue',h:'#191970'},
+  {n:'Denim',h:'#1560BD'},{n:'Sapphire',h:'#0F52BA'},{n:'Cerulean',h:'#007BA7'},
+  {n:'Slate Blue',h:'#6A5ACD'},{n:'Periwinkle',h:'#CCCCFF'},{n:'Ice Blue',h:'#D6ECFF'},
+  {n:'Purple',h:'#800080'},{n:'Violet',h:'#9B5DE5'},{n:'Dark Violet',h:'#9400D3'},
+  {n:'Indigo',h:'#4B0082'},{n:'Lavender',h:'#E6E6FA'},{n:'Plum',h:'#DDA0DD'},
+  {n:'Orchid',h:'#DA70D6'},{n:'Mauve',h:'#E0B0FF'},{n:'Lilac',h:'#C8A2C8'},
+  {n:'Amethyst',h:'#9966CC'},{n:'Wine',h:'#722F37'},{n:'Berry',h:'#990F4B'},
+  {n:'Wisteria',h:'#BFA3D1'},{n:'Thistle',h:'#D8BFD8'},
+  {n:'Cyan',h:'#00FFFF'},{n:'Teal',h:'#008080'},{n:'Dark Teal',h:'#003333'},
+  {n:'Turquoise',h:'#40E0D0'},{n:'Aqua',h:'#00FFFF'},{n:'Aquamarine',h:'#7FFFD4'},
+  {n:'Light Cyan',h:'#E0FFFF'},{n:'Dark Cyan',h:'#008B8B'},{n:'Cadet Blue',h:'#5F9EA0'},
+  {n:'Robin Egg Blue',h:'#00CCCD'},{n:'Seafoam',h:'#71EEB8'},
+  {n:'Brown',h:'#A52A2A'},{n:'Saddle Brown',h:'#8B4513'},{n:'Sienna',h:'#A0522D'},
+  {n:'Chocolate',h:'#D2691E'},{n:'Peru',h:'#CD853F'},{n:'Sandy Brown',h:'#F4A460'},
+  {n:'Tan',h:'#D2B48C'},{n:'Burlywood',h:'#DEB887'},{n:'Wheat',h:'#F5DEB3'},
+  {n:'Warm Gold',h:'#C0A062'},{n:'Rust',h:'#B7410E'},{n:'Terracotta',h:'#CC4E2A'},
+  {n:'Umber',h:'#635147'},{n:'Mahogany',h:'#C04000'},{n:'Coffee',h:'#6F4E37'},
+  {n:'Caramel',h:'#C68642'},{n:'Walnut',h:'#773F1A'},{n:'Clay',h:'#B66A50'},
+  {n:'White',h:'#FFFFFF'},{n:'Snow',h:'#FFFAFA'},{n:'Ghost White',h:'#F8F8FF'},
+  {n:'Light Gray',h:'#D3D3D3'},{n:'Silver',h:'#C0C0C0'},{n:'Dark Gray',h:'#A9A9A9'},
+  {n:'Gray',h:'#808080'},{n:'Dim Gray',h:'#696969'},{n:'Slate Gray',h:'#708090'},
+  {n:'Charcoal',h:'#36454F'},{n:'Jet Black',h:'#343434'},{n:'Black',h:'#000000'},
+  {n:'Off White',h:'#FAF9F6'},{n:'Ivory',h:'#FFFFF0'},{n:'Beige',h:'#F5F5DC'},
+  {n:'Linen',h:'#FAF0E6'},{n:'Ash',h:'#B2BEB5'},{n:'Pearl',h:'#F0EAD6'},
+];
+
+/* ═══════════════════════════════════════════════════════
+   UI LOGIC
+═══════════════════════════════════════════════════════ */
+let currentPalette=null;
+
+function showToast(msg,dur=2200){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+function copyText(text){navigator.clipboard.writeText(text).then(()=>showToast(`Copied ${text}`));}
+function copyAllJSON(){
+  if(!currentPalette)return;
+  const{_hsl,...exp}=currentPalette;
+  navigator.clipboard.writeText(JSON.stringify(exp,null,2)).then(()=>showToast('Palette JSON copied!'));
+}
+
+/* Name search */
+function handleNameSearch(){
+  const q=document.getElementById('nameSearch').value.trim().toLowerCase();
+  const box=document.getElementById('nameSuggestions');
+  if(q.length<1){box.classList.remove('open');return;}
+  const hits=COLOR_NAMES.filter(c=>c.n.toLowerCase().includes(q)).slice(0,10);
+  if(!hits.length){box.classList.remove('open');return;}
+  box.innerHTML=hits.map(c=>
+    `<div class="sug-item" onmousedown="pickNamedColor('${c.h}','${c.n}')">
+      <div class="sug-dot" style="background:${c.h}"></div>
+      <span class="sug-name">${c.n}</span>
+      <span class="sug-hex">${c.h}</span>
+    </div>`
+  ).join('');
+  box.classList.add('open');
+}
+function pickNamedColor(hex,name){
+  document.getElementById('nameSearch').value=name;
+  document.getElementById('nameSuggestions').classList.remove('open');
+  setColor(hex);
+}
+function hideSuggestionsDelay(){setTimeout(()=>document.getElementById('nameSuggestions').classList.remove('open'),180);}
+
+/* Hex / picker sync */
+function syncFromPicker(){
+  const hex=document.getElementById('colorPicker').value;
+  document.getElementById('hexInput').value=hex.toUpperCase();
+  clearError();updateAll(hex);
+}
+function syncFromText(){
+  const val=document.getElementById('hexInput').value.trim();
+  clearError();
+  if(isValidHex(val)){document.getElementById('colorPicker').value=val;updateAll(val);}
+}
+function setColor(hex){
+  document.getElementById('hexInput').value=hex.toUpperCase();
+  document.getElementById('colorPicker').value=hex;
+  clearError();updateAll(hex);generatePalette();
+}
+function clearError(){
+  document.getElementById('inputError').style.display='none';
+  document.getElementById('hexInputWrap').classList.remove('has-error');
+}
+function showError(){
+  document.getElementById('inputError').style.display='block';
+  document.getElementById('hexInputWrap').classList.add('has-error');
+}
+
+/* Update live swatch + preview strip + theme cards */
+function updateAll(hex){
+  if(!isValidHex(hex))return;
+  document.getElementById('liveSwatch').style.background=hex;
+  try{
+    const p=generateColorPalette(hex);
+    const swatches=document.querySelectorAll('#palettePreview .pal-swatch');
+    [p.primary,p.complementary,...p.analogous,p.accent].forEach((c,i)=>{if(swatches[i])swatches[i].style.background=c;});
+    applyThemeCards(p);
+  }catch(e){}
+}
+
+function generatePalette(){
+  const hex=document.getElementById('hexInput').value.trim();
+  if(!isValidHex(hex)){showError();return;}
+  clearError();
+  try{
+    const p=generateColorPalette(hex);
+    currentPalette=p;
+    renderPalette(p);
+  }catch(e){showError();}
+}
+
+function renderPalette(p){
+  const grid=document.getElementById('paletteGrid');
+  grid.innerHTML='';
+  const cards=[
+    {type:'Primary',name:'Your base color',colors:[p.primary]},
+    {type:'Complementary',name:'Opposite hue · 180°',colors:[p.primary,p.complementary]},
+    {type:'Analogous',name:'Adjacent hues · ±30°',colors:[p.analogous[0],p.primary,p.analogous[1]]},
+    {type:'Triadic',name:'Equal spacing · +120° / +240°',colors:[p.primary,p.triadic[0],p.triadic[1]]},
+    {type:'Accent',name:'High-contrast companion',colors:[p.primary,p.accent]},
+  ];
+  cards.forEach(card=>{
+    const el=document.createElement('div');
+    el.className='palette-card';
+    el.innerHTML=`
+      <div class="pal-card-swatches">
+        ${card.colors.map(c=>`<div class="swatch-block" style="background:${c}" onclick="copyText('${c}')"><span class="swatch-hint">copy</span></div>`).join('')}
+      </div>
+      <div class="pal-card-body">
+        <div class="pal-type">${card.type}</div>
+        <div class="pal-name">${card.name}</div>
+        <div class="pal-hexes">${card.colors.map(c=>`<span class="hex-pill" onclick="copyText('${c}')">${c}</span>`).join('')}</div>
+      </div>`;
+    grid.appendChild(el);
+  });
+  const monoEl=document.createElement('div');
+  monoEl.className='full-row-card';
+  const allMono=[p.monochromatic[0],p.monochromatic[1],p.primary,p.monochromatic[2]];
+  monoEl.innerHTML=`
+    <div class="full-row-swatches">
+      ${allMono.map(c=>`<div class="swatch-block" style="background:${c};flex:1" onclick="copyText('${c}')"><span class="swatch-hint">copy</span></div>`).join('')}
+    </div>
+    <div class="pal-card-body">
+      <div class="pal-type">Monochromatic</div>
+      <div class="pal-name">Lightness variations of the base hue</div>
+      <div class="pal-hexes">${allMono.map(c=>`<span class="hex-pill" onclick="copyText('${c}')">${c}</span>`).join('')}</div>
+    </div>`;
+  grid.appendChild(monoEl);
+  document.getElementById('resultsSection').style.display='block';
+  document.getElementById('resultsSection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* NAV */
+function showPage(page){
+  document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  document.getElementById(`nav-${page}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* INIT */
+updateAll('#292929');
+generatePalette();
+</script>
+</body>
+</html>
